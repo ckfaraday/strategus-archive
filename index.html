@@ -80,16 +80,20 @@
       border-radius: 4px;
     }
     .data-table {
-      width: 100%;
+      width: auto;
+      table-layout: fixed;
       border-collapse: collapse;
       background: #121f12;
       margin-top: 20px;
+      margin: auto;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       color: white;
     }
     .data-table th, .data-table td {
-      padding: 3px;
+      padding: 3px 6px;
+      border-spacing: 0 10px;
       text-align: center;
+      white-space: nowrap;
     }
     .data-table th {
       background-color: #a6a;
