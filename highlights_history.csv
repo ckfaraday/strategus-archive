@@ -1,0 +1,10 @@
+date,metric,player_count,players_json
+2025-07-29,Most active player,1,"[{""name"": ""McReady"", ""games"": ""83""}]"
+2025-07-29,Best W-L streak,1,"[{""name"": ""McReady"", ""wins"": ""50"", ""losses"": ""33""}]"
+2025-07-29,Worst W-L streak,1,"[{""name"": ""Astore"", ""wins"": ""7"", ""losses"": ""27""}]"
+2025-07-29,Prolonged win streaks,1,"[{""name"": ""tonylaw44"", ""wins"": ""11""}]"
+2025-07-29,Biggest Elo rise,1,"[{""name"": ""tonylaw44"", ""elo"": ""+48.3""}]"
+2025-07-29,Biggest Elo drop,1,"[{""name"": ""Cat-hunter"", ""elo"": ""-63.7""}]"
+2025-07-29,All-time-high Elo hits,3,"[{""name"": ""Jovo"", ""elo"": ""372.1""}, {""name"": ""Coyote"", ""elo"": ""369.6""}, {""name"": ""BRUHEGUS911"", ""elo"": ""263.5""}]"
+2025-07-29,New players,1,"[{""name"": ""Silverwing92""}]"
+2025-07-29,Comebacks,1,"[{""name"": ""Everton1975""}]"
