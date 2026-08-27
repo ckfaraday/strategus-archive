@@ -61,16 +61,13 @@ def ensure_csv_header(filename, header):
             writer = csv.writer(csvfile)
             writer.writerow(header)
 
-def parse_date(date_text):
-    """Parse date from text"""
-    try:
-        if "Last updated:" in date_text:
-            date_text = date_text.split("Last updated:")[1].strip()
-        date_part = date_text.split(',')[0].strip()
-        day, month, year = map(int, date_part.split('/'))
-        return f"{year}-{month:02d}-{day:02d}"
-    except Exception:
-        return datetime.now().strftime('%Y-%m-%d')
+def date_from_timestamp(driver, json_url):
+    """Fetch the JSON timestamp and return a deterministic UTC date YYYY-MM-DD"""
+    driver.get(json_url)
+    body = driver.execute_script("return document.body.innerText")
+    data = json.loads(body)
+    ts_ms = data["timestamp"]
+    return datetime.utcfromtimestamp(ts_ms / 1000.0).strftime('%Y-%m-%d')
 
 def parse_highlight_item(text, metric):
     """Parse individual highlight item"""
@@ -139,10 +136,9 @@ def create_driver():
     driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
     return driver
 
-def scrape_ranking_data(driver, url):
+def scrape_ranking_data(driver, url, scraped_date):
     """Scrape the ranking table data"""
     data = []
-    date_span = None
 
     driver.get(url)
 
@@ -158,10 +154,6 @@ def scrape_ranking_data(driver, url):
         log.warning("[SCRAPE] 'Show all' button not found; may get incomplete ranking")
     except Exception as e:
         log.warning(f"[SCRAPE] could not click 'Show all': {e}")
-
-    # Get date
-    date_span = driver.find_element(By.ID, "txtInfo")
-    scraped_date = parse_date(date_span.text)
 
     # Scrape table data
     table_body = driver.find_element(By.ID, "listing")
@@ -194,7 +186,7 @@ def scrape_ranking_data(driver, url):
 
     return data
 
-def scrape_highlights_data(driver, url):
+def scrape_highlights_data(driver, url, scraped_date):
     """Scrape highlights data with robust waiting"""
     driver.get(url)
 
@@ -202,9 +194,6 @@ def scrape_highlights_data(driver, url):
     WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#highlights ul li"))
     )
-
-    date_span = driver.find_element(By.ID, "txtInfo")
-    scraped_date = parse_date(date_span.text)
 
     highlights_items = driver.find_elements(By.CSS_SELECTOR, "#highlights ul li")
 
@@ -227,7 +216,7 @@ def scrape_highlights_data(driver, url):
 
     return data
 
-def scrape_match_data(driver, url):
+def scrape_match_data(driver, url, scraped_date):
     """Scrape match results data with numeric results (1=player1 won, 2=player2 won, draw)"""
     matches = []
 
@@ -237,10 +226,6 @@ def scrape_match_data(driver, url):
     WebDriverWait(driver, 15).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, "#results tr"))
     )
-
-    # Get the date from the page
-    date_span = driver.find_element(By.ID, "txtInfo")
-    scraped_date = parse_date(date_span.text)
 
     # Scrape all match rows
     rows = driver.find_elements(By.CSS_SELECTOR, "#results tr")
@@ -315,12 +300,12 @@ def scrape_match_data(driver, url):
 
     return matches
 
-def scrape_with_retry(scrape_func, driver, url):
+def scrape_with_retry(scrape_func, driver, url, scraped_date):
     """Run a scrape with retries on transient failures"""
     last_error = None
     for attempt in range(1, MAX_RETRIES + 1):
         try:
-            return scrape_func(driver, url)
+            return scrape_func(driver, url, scraped_date)
         except Exception as e:
             last_error = e
             log.warning(f"[SCRAPE] attempt {attempt}/{MAX_RETRIES} failed: {e}")
@@ -374,7 +359,12 @@ if __name__ == "__main__":
     ensure_csv_header('match_history.csv', MATCH_CSV_HEADER)
 
     ranking_url = "https://strategus.appspot.com/eloRanking.html"
+    ranking_json_url = "https://strategus.appspot.com/eloRanking"
     highlights_url = "https://strategus.appspot.com/rankedResults.html"
+    highlights_json_url = "https://strategus.appspot.com/rankedResults"
+    ranking_csv = 'ranking_history.csv'
+    highlights_csv = 'highlights_history.csv'
+    match_csv = 'match_history.csv'
 
     log_section("Strategus Archive Scrape")
 
@@ -385,24 +375,28 @@ if __name__ == "__main__":
 
         # Scrape and save ranking data
         log_section("Rankings")
-        ranking_data = scrape_with_retry(scrape_ranking_data, driver, ranking_url)
+        ranking_date = date_from_timestamp(driver, ranking_json_url)
+        log_status("ranking date", ranking_date)
+        ranking_data = scrape_with_retry(scrape_ranking_data, driver, ranking_url, ranking_date)
         if ranking_data:
             log_event("ranking data", {"rows": len(ranking_data)})
-            save_to_csv(ranking_data, 'ranking_history.csv', RANKING_CSV_HEADER)
+            save_to_csv(ranking_data, ranking_csv, RANKING_CSV_HEADER)
 
         # Scrape and save highlights data
         log_section("Highlights")
-        highlights_data = scrape_with_retry(scrape_highlights_data, driver, highlights_url)
+        highlights_date = date_from_timestamp(driver, highlights_json_url)
+        log_status("highlights date", highlights_date)
+        highlights_data = scrape_with_retry(scrape_highlights_data, driver, highlights_url, highlights_date)
         if highlights_data:
             log_event("highlights data", {"rows": len(highlights_data)})
-            save_to_csv(highlights_data, 'highlights_history.csv', HIGHLIGHTS_CSV_HEADER)
+            save_to_csv(highlights_data, highlights_csv, HIGHLIGHTS_CSV_HEADER)
 
         # Scrape and save match data
         log_section("Matches")
-        match_data = scrape_with_retry(scrape_match_data, driver, highlights_url)
+        match_data = scrape_with_retry(scrape_match_data, driver, highlights_url, highlights_date)
         if match_data:
             log_event("match data", {"rows": len(match_data)})
-            save_to_csv(match_data, 'match_history.csv', MATCH_CSV_HEADER)
+            save_to_csv(match_data, match_csv, MATCH_CSV_HEADER)
 
     finally:
         if driver is not None:
