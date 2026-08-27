@@ -10,20 +10,14 @@
 <body>
   <h1>Strategus Archive</h1>
   <div class="controls">
-    <select id="dataType">
-      <option value="ranking_history.csv">Elo Rankings</option>
-    </select>
     <select id="dateSelect"></select>
-    <button id="loadData">Load Data</button>
     <div id="errorMessage" class="error" style="display:none;"></div>
   </div>
   <div id="loadingIndicator" class="loading" style="display:none;">Loading data...</div>
   <div id="tableContainer"></div>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
-      const dataTypeSelect = document.getElementById('dataType');
       const dateSelect = document.getElementById('dateSelect');
-      const loadButton = document.getElementById('loadData');
       const tableContainer = document.getElementById('tableContainer');
       const loading = document.getElementById('loadingIndicator');
       const error = document.getElementById('errorMessage');
@@ -60,7 +54,7 @@
         dateSelect.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
         dateSelect.value = dates[0];
       }
-      function displayData(data, type) {
+      function displayData(data) {
         const selectedDate = dateSelect.value;
         const filtered = data.filter(r => r.date === selectedDate);
         tableContainer.innerHTML = '';
@@ -94,18 +88,17 @@
           </tbody>`;
         tableContainer.appendChild(table);
       }
-      loadButton.addEventListener('click', async () => {
-        const file = dataTypeSelect.value;
-        allData = await loadCSV(file);
+      const file = 'ranking_history.csv';
+      loadCSV(file).then(data => {
+        allData = data;
         if (allData.length) {
           updateDateOptions(allData);
-          displayData(allData, file);
+          displayData(allData);
         }
       });
       dateSelect.addEventListener('change', () => {
-        if (allData.length) displayData(allData, dataTypeSelect.value);
+        if (allData.length) displayData(allData);
       });
-      loadButton.click();
     });
   </script>
 </body>

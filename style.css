@@ -44,19 +44,13 @@ body {
       flex-wrap: wrap;
       justify-content: center;
     }
-    select, button {
+    select {
       padding: 8px 12px;
       border-radius: 4px;
       background: #ffddff;
       border: 1px solid #aa00aa;
       min-width: 150px;
       font-size: 14px;
-    }
-    button {
-      background-color: #a6a;
-      color: white;
-      border: none;
-      cursor: pointer;
     }
     .loading {
       color: #888;
