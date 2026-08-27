@@ -22,6 +22,8 @@
       const loading = document.getElementById('loadingIndicator');
       const error = document.getElementById('errorMessage');
       let allData = [];
+      let sortKey = 'pos';
+      let sortAsc = true;
       function normalizeDateField(row) {
         const date = row.date || row.date_string || '';
         if (date) row.date = date;
@@ -54,39 +56,81 @@
         dateSelect.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
         dateSelect.value = dates[0];
       }
+      function sortRows(rows) {
+        const sorted = rows.slice();
+        const isNum = v => v !== '' && v != null && !isNaN(Number(String(v).replace(/[^0-9.\-]/g, ''))) && String(v).replace(/[^0-9.\-]/g, '') !== '';
+        sorted.sort((a, b) => {
+          const av = String(a[sortKey] ?? '').toLowerCase();
+          const bv = String(b[sortKey] ?? '').toLowerCase();
+          let cmp;
+          if (isNum(a[sortKey]) && isNum(b[sortKey])) {
+            cmp = Number(av.replace(/[^0-9.\-]/g, '')) - Number(bv.replace(/[^0-9.\-]/g, ''));
+          } else {
+            cmp = av.localeCompare(bv);
+          }
+          return sortAsc ? cmp : -cmp;
+        });
+        return sorted;
+      }
+
       function displayData(data) {
         const selectedDate = dateSelect.value;
-        const filtered = data.filter(r => r.date === selectedDate);
+        const filtered = sortRows(data.filter(r => r.date === selectedDate));
         tableContainer.innerHTML = '';
         const table = document.createElement('table');
         table.className = 'data-table ranking-table';
-        table.innerHTML = `
-          <thead>
-            <tr>
-              <th>Pos</th><th>Name</th><th>Flag</th><th>Score</th>
-              <th>Diff</th><th>W/L/D</th><th>Eff%</th><th>AOR</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${filtered.map(r => `
-              <tr>
-                <td>${r.pos}</td>
-                <td>${r.name}</td>
-                <td><span class="flag" style="background-image:url(https://flagcdn.com/32x24/${r.flag?.toLowerCase()}.png)"></span></td>
-                <td>${r.score}</td>
-                <td class="${
-                  r.diff?.startsWith('+') ? 'diff-positive' :
-                  r.diff?.startsWith('-') ? 'diff-negative' : 'diff-neutral'
-                }">${
-                  r.diff && !r.diff.startsWith('+') && !r.diff.startsWith('-') ? `(${r.diff}d)` : r.diff
-                }</td>
-                <td>${r.wld}</td>
-                <td>${r.eff}%</td>
-                <td>${r.aor}</td>
-              </tr>
-            `).join('')}
-          </tbody>`;
+        const headerCell = (label, key) => {
+          const arrow = key === sortKey ? (sortAsc ? ' ▲' : ' ▼') : '';
+          const cls = key ? 'sortable' : '';
+          const title = key ? ` title="Sort by ${label}"` : '';
+          return `<th class="${cls}" data-sort="${key || ''}"${title}>${label}${arrow}</th>`;
+        };
+        const thead = document.createElement('thead');
+        const tr = document.createElement('tr');
+        tr.innerHTML =
+          headerCell('Pos', 'pos') +
+          headerCell('Name', 'name') +
+          '<th>Flag</th>' +
+          '<th>Score</th>' +
+          '<th>Diff</th>' +
+          '<th>W/L/D</th>' +
+          '<th>Eff%</th>' +
+          headerCell('AOR', 'aor');
+        thead.appendChild(tr);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        filtered.forEach(r => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${r.pos}</td>
+            <td>${r.name}</td>
+            <td><span class="flag" style="background-image:url(https://flagcdn.com/32x24/${r.flag?.toLowerCase()}.png)"></span></td>
+            <td>${r.score}</td>
+            <td class="${
+              r.diff?.startsWith('+') ? 'diff-positive' :
+              r.diff?.startsWith('-') ? 'diff-negative' : 'diff-neutral'
+            }">${
+              r.diff && !r.diff.startsWith('+') && !r.diff.startsWith('-') ? `(${r.diff}d)` : r.diff
+            }</td>
+            <td>${r.wld}</td>
+            <td>${r.eff}%</td>
+            <td>${r.aor}</td>`;
+          tbody.appendChild(row);
+        });
+        table.appendChild(tbody);
         tableContainer.appendChild(table);
+        table.querySelectorAll('th.sortable').forEach(th => {
+          const key = th.dataset.sort;
+          th.addEventListener('click', () => {
+            if (key === sortKey) {
+              sortAsc = !sortAsc;
+            } else {
+              sortKey = key;
+              sortAsc = true;
+            }
+            displayData(data);
+          });
+        });
       }
       const file = 'ranking_history.csv';
       loadCSV(file).then(data => {
