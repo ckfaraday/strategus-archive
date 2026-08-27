@@ -161,8 +161,6 @@ select:hover, select:focus {
   background-size: cover;
   background-position: center;
   display: inline-block;
-  border-radius: 3px;
-  box-shadow: 0 0 0 1px var(--border);
 }
 
 .diff-positive {
