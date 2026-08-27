@@ -1,111 +1,192 @@
+:root {
+  --bg: #111111;
+  --bg-soft: #1a1a1a;
+  --bg-raise: #202020;
+  --text: #eeeeee;
+  --text-muted: #9a9a9a;
+  --accent: #7d457d;
+  --accent-hover: #683b68;
+  --accent-soft: #2a1f2a;
+  --border: #333333;
+  --positive: #4caf50;
+  --negative: #ef5350;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-      font-family: Arial, sans-serif;
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 20px;
-      background-color: #121f12;
-      color: white;
-    }
-    h1 {
-      text-align: center;
-      color: #a6a;
-    }
-    .ranking-table tbody tr:nth-child(1) td:nth-child(2) {
-      background: linear-gradient(90deg, #fff59d 0%, #ffd700 35%, #ffa500 70%, #ff8c00 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
-      font-weight: bold;
-    }
-    .ranking-table tbody tr:nth-child(2) td:nth-child(2) {
-      background: linear-gradient(90deg, #f5f5f5 0%, #c0c0c0 35%, #a9a9a9 70%, #808080 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
-      font-weight: bold;
-    }
-    .ranking-table tbody tr:nth-child(3) td:nth-child(2) {
-      background: linear-gradient(90deg, #ffddb1 0%, #cd7f32 35%, #b36216 70%, #8b4513 100%);
-      background-clip: text;
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      color: transparent;
-      font-weight: bold;
-    }
-    .controls {
-      background: #121f12;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-    }
-    select {
-      padding: 8px 12px;
-      border-radius: 4px;
-      background: #ffddff;
-      border: 1px solid #aa00aa;
-      min-width: 150px;
-      font-size: 14px;
-    }
-    .loading {
-      color: #888;
-      font-style: italic;
-      text-align: center;
-      margin-top: -10px;
-      margin-bottom: 10px;
-    }
-    .error {
-      background: #ffebee;
-      color: #c62828;
-      padding: 10px;
-      border-radius: 4px;
-    }
-    .data-table {
-      width: auto;
-      table-layout: fixed;
-      border-collapse: collapse;
-      background: #121f12;
-      margin-top: 20px;
-      margin: auto;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      color: white;
-    }
-    .data-table th, .data-table td {
-      padding: 3px 6px;
-      border-spacing: 0 10px;
-      text-align: center;
-      white-space: nowrap;
-    }
-    .data-table th {
-      background-color: #a6a;
-      position: sticky;
-      top: 0;
-    }
-    .data-table th.sortable {
-      cursor: pointer;
-      user-select: none;
-    }
-    .data-table th.sortable:hover {
-      background-color: #c472c4;
-    }
-    .flag {
-      width: 32px;
-      height: 24px;
-      background-size: cover;
-      background-position: center;
-      display: inline-block;
-    }
-    .diff-positive {
-      color: #2e7d32;
-    }
-    .diff-negative {
-      color: #c62828;
-    }
-    .diff-neutral {
-      opacity: 0.5;
-    }
+  font-family: Arial, sans-serif;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  background-color: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+}
+
+h1 {
+  text-align: center;
+  color: var(--accent);
+  letter-spacing: 1px;
+  margin-bottom: 28px;
+  font-size: 28px;
+}
+
+.controls {
+  background: var(--bg-soft);
+  padding: 20px;
+  border-radius: 10px;
+  margin-bottom: 24px;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+select {
+  padding: 9px 14px;
+  border-radius: 6px;
+  background: var(--bg-raise);
+  color: var(--text);
+  border: 1px solid var(--border);
+  min-width: 160px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+select:hover, select:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.loading {
+  color: var(--text-muted);
+  font-style: italic;
+  text-align: center;
+  margin-top: -8px;
+  margin-bottom: 12px;
+}
+
+.error {
+  background: #2a1212;
+  color: var(--negative);
+  padding: 10px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--negative);
+  text-align: center;
+  margin: 0 auto;
+}
+
+.data-table {
+  width: auto;
+  table-layout: fixed;
+  border-collapse: collapse;
+  background: var(--bg-soft);
+  margin: 24px auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.data-table th, .data-table td {
+  padding: 7px 12px;
+  border-spacing: 0 10px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.data-table th {
+  background-color: var(--accent);
+  color: #ffffff;
+  position: sticky;
+  top: 0;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.data-table th.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.data-table th.sortable:hover {
+  background-color: var(--accent-hover);
+}
+
+.data-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background-color 0.12s ease;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background-color: var(--bg-raise);
+}
+
+.ranking-table tbody tr:nth-child(1) td:nth-child(2) {
+  background: linear-gradient(90deg, #fff59d 0%, #ffd700 35%, #ffa500 70%, #ff8c00 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: bold;
+}
+
+.ranking-table tbody tr:nth-child(2) td:nth-child(2) {
+  background: linear-gradient(90deg, #f5f5f5 0%, #c0c0c0 35%, #a9a9a9 70%, #808080 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: bold;
+}
+
+.ranking-table tbody tr:nth-child(3) td:nth-child(2) {
+  background: linear-gradient(90deg, #ffddb1 0%, #cd7f32 35%, #b36216 70%, #8b4513 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  font-weight: bold;
+}
+
+.flag {
+  width: 32px;
+  height: 24px;
+  background-size: cover;
+  background-position: center;
+  display: inline-block;
+  border-radius: 3px;
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.diff-positive {
+  color: var(--positive);
+}
+
+.diff-negative {
+  color: var(--negative);
+}
+
+.diff-neutral {
+  opacity: 0.5;
+}
+
+@media (max-width: 600px) {
+  body {
+    padding: 12px;
+  }
+  .data-table th, .data-table td {
+    padding: 5px 8px;
+  }
+}
