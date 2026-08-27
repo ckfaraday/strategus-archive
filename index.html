@@ -12,8 +12,6 @@
   <div class="controls">
     <select id="dataType">
       <option value="ranking_history.csv">Elo Rankings</option>
-      <option value="match_history.csv">Match History</option>
-      <option value="highlights_history.csv">Highlights</option>
     </select>
     <select id="dateSelect"></select>
     <button id="loadData">Load Data</button>
@@ -21,14 +19,12 @@
   </div>
   <div id="loadingIndicator" class="loading" style="display:none;">Loading data...</div>
   <div id="tableContainer"></div>
-  <div id="highlightCards" class="highlight-cards" style="display:none;"></div>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const dataTypeSelect = document.getElementById('dataType');
       const dateSelect = document.getElementById('dateSelect');
       const loadButton = document.getElementById('loadData');
       const tableContainer = document.getElementById('tableContainer');
-      const highlightCards = document.getElementById('highlightCards');
       const loading = document.getElementById('loadingIndicator');
       const error = document.getElementById('errorMessage');
       let allData = [];
@@ -64,96 +60,39 @@
         dateSelect.innerHTML = dates.map(d => `<option value="${d}">${d}</option>`).join('');
         dateSelect.value = dates[0];
       }
-      function formatPlayer(player) {
-        const parts = [];
-        if (player.name) parts.push(player.name);
-        if (player.games) parts.push(`Games: ${player.games}`);
-        if (player.wins && player.losses) parts.push(`W/L: ${player.wins}/${player.losses}`);
-        else if (player.wins) parts.push(`Wins: ${player.wins}`);
-        if (player.elo) parts.push(`Elo: ${player.elo}`);
-        return parts.join(' — ');
-      }
       function displayData(data, type) {
         const selectedDate = dateSelect.value;
         const filtered = data.filter(r => r.date === selectedDate);
         tableContainer.innerHTML = '';
-        highlightCards.innerHTML = '';
-        highlightCards.style.display = 'none';
-        if (type === 'ranking_history.csv') {
-          const table = document.createElement('table');
-          table.className = 'data-table ranking-table';
-          table.innerHTML = `
-            <thead>
+        const table = document.createElement('table');
+        table.className = 'data-table ranking-table';
+        table.innerHTML = `
+          <thead>
+            <tr>
+              <th>Pos</th><th>Name</th><th>Flag</th><th>Score</th>
+              <th>Diff</th><th>W/L/D</th><th>Eff%</th><th>AOR</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${filtered.map(r => `
               <tr>
-                <th>Pos</th><th>Name</th><th>Flag</th><th>Score</th>
-                <th>Diff</th><th>W/L/D</th><th>Eff%</th><th>AOR</th>
+                <td>${r.pos}</td>
+                <td>${r.name}</td>
+                <td><span class="flag" style="background-image:url(https://flagcdn.com/32x24/${r.flag?.toLowerCase()}.png)"></span></td>
+                <td>${r.score}</td>
+                <td class="${
+                  r.diff?.startsWith('+') ? 'diff-positive' :
+                  r.diff?.startsWith('-') ? 'diff-negative' : 'diff-neutral'
+                }">${
+                  r.diff && !r.diff.startsWith('+') && !r.diff.startsWith('-') ? `(${r.diff}d)` : r.diff
+                }</td>
+                <td>${r.wld}</td>
+                <td>${r.eff}%</td>
+                <td>${r.aor}</td>
               </tr>
-            </thead>
-            <tbody>
-              ${filtered.map(r => `
-                <tr>
-                  <td>${r.pos}</td>
-                  <td>${r.name}</td>
-                  <td><span class="flag" style="background-image:url(https://flagcdn.com/32x24/${r.flag?.toLowerCase()}.png)"></span></td>
-                  <td>${r.score}</td>
-                  <td class="${
-                    r.diff?.startsWith('+') ? 'diff-positive' :
-                    r.diff?.startsWith('-') ? 'diff-negative' : 'diff-neutral'
-                  }">${
-                    r.diff && !r.diff.startsWith('+') && !r.diff.startsWith('-') ? `(${r.diff}d)` : r.diff
-                  }</td>
-                  <td>${r.wld}</td>
-                  <td>${r.eff}%</td>
-                  <td>${r.aor}</td>
-                </tr>
-              `).join('')}
-            </tbody>`;
-          tableContainer.appendChild(table);
-        } else if (type === 'match_history.csv') {
-          const table = document.createElement('table');
-          table.className = 'data-table';
-          table.innerHTML = `
-            <thead><tr><th>Match</th><th>Moves</th><th>Elo +/-</th></tr></thead>
-            <tbody>
-              ${filtered.map(r => `
-                <tr>
-                  <td>${
-                    r.result === '1' ? 
-                      `<span class="winner">${r.player1} [W]</span> vs. <span class="loser">${r.player2} [L]</span>` :
-                    r.result === '2' ? 
-                      `<span class="loser">${r.player1} [L]</span> vs. <span class="winner">${r.player2} [W]</span>` :
-                      `<span class="draw">${r.player1} [D]</span> vs. <span class="draw">${r.player2} [D]</span>`
-                  }</td>
-                  <td>${r.moves}</td>
-                  <td>
-                    <span class="${r.elo_change1 >= 0 ? 'diff-positive' : 'diff-negative'}">${r.elo_change1}</span> / 
-                    <span class="${r.elo_change2 >= 0 ? 'diff-positive' : 'diff-negative'}">${r.elo_change2}</span>
-                  </td>
-                </tr>
-              `).join('')}
-            </tbody>`;
-          tableContainer.appendChild(table);
-        } else if (type === 'highlights_history.csv') {
-          highlightCards.style.display = 'flex';
-          filtered.forEach(row => {
-            const card = document.createElement('div');
-            card.className = 'highlight-card';
-            const title = document.createElement('h3');
-            title.textContent = row.metric;
-            card.appendChild(title);
-            const list = document.createElement('ul');
-            try {
-              const players = JSON.parse(row.players_json);
-              players.forEach(p => {
-                const li = document.createElement('li');
-                li.textContent = formatPlayer(p);
-                list.appendChild(li);
-              });
-            } catch {}
-            card.appendChild(list);
-            highlightCards.appendChild(card);
-          });
-        }
+            `).join('')}
+          </tbody>`;
+        tableContainer.appendChild(table);
       }
       loadButton.addEventListener('click', async () => {
         const file = dataTypeSelect.value;
