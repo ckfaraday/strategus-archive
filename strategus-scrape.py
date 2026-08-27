@@ -8,6 +8,7 @@ import json
 import csv
 import os
 import time
+import logging
 
 # CSV headers
 RANKING_CSV_HEADER = ['date', 'pos', 'name', 'flag', 'score', 'diff', 'wld', 'eff', 'opps', 'aor']
@@ -16,6 +17,42 @@ MATCH_CSV_HEADER = ['date', 'player1', 'player2', 'result', 'moves', 'elo_change
 
 MAX_RETRIES = 3
 PAGE_LOAD_TIMEOUT = 30
+
+def _setup_logging():
+    """Configure terminal-only logging in a Rose-style format"""
+    class _Fmt(logging.Formatter):
+        def format(self, record):
+            record._when = time.strftime("%H:%M:%S", time.localtime())
+            return super().format(record)
+
+    logger = logging.getLogger("scrape")
+    if not logger.handlers:
+        handler = logging.StreamHandler()
+        handler.setFormatter(_Fmt("%(_when)s | %(levelname)-7s | %(message)s"))
+        logger.addHandler(handler)
+        logger.setLevel(logging.INFO)
+    return logger
+
+log = _setup_logging()
+
+def log_success(message, tag="SCRAPE"):
+    """Log a success line in Rose-style format"""
+    log.info(f"[{tag}] {message}")
+
+def log_event(event, details=None, icon="", tag="SCRAPE"):
+    """Log an event line, optionally followed by indented details"""
+    log.info(f"{icon} [{tag}] {event}" if icon else f"[{tag}] {event}")
+    if details:
+        for key, value in details.items():
+            log.info(f"   | {key}: {value}")
+
+def log_section(title, tag="SCRAPE"):
+    """Log a section header"""
+    log.info(f"--- {title} ---")
+
+def log_status(status, value, tag="SCRAPE"):
+    """Log a status line"""
+    log.info(f"[{tag}] {status}: {value}")
 
 def ensure_csv_header(filename, header):
     """Ensure CSV file exists with correct header"""
@@ -116,11 +153,11 @@ def scrape_ranking_data(driver, url):
         )
         show_all_button.click()
         time.sleep(2)
-        print("Expanded 'Show all' list")
+        log_success("Expanded 'Show all' list")
     except TimeoutException:
-        print("warning: 'Show all' button not found; may get incomplete ranking")
+        log.warning("[SCRAPE] 'Show all' button not found; may get incomplete ranking")
     except Exception as e:
-        print(f"warning: could not click 'Show all': {e}")
+        log.warning(f"[SCRAPE] could not click 'Show all': {e}")
 
     # Get date
     date_span = driver.find_element(By.ID, "txtInfo")
@@ -273,7 +310,7 @@ def scrape_match_data(driver, url):
             ])
 
         except Exception as e:
-            print(f"error processing match row: {e}")
+            log.debug(f"[SCRAPE] error processing match row: {e}")
             continue
 
     return matches
@@ -286,7 +323,7 @@ def scrape_with_retry(scrape_func, driver, url):
             return scrape_func(driver, url)
         except Exception as e:
             last_error = e
-            print(f"scrape attempt {attempt}/{MAX_RETRIES} failed for {url}: {e}")
+            log.warning(f"[SCRAPE] attempt {attempt}/{MAX_RETRIES} failed: {e}")
             if attempt < MAX_RETRIES:
                 # Recreate the driver in case the session is in a bad state
                 try:
@@ -309,7 +346,7 @@ def save_to_csv(data, filename, header):
 
     # Check if this date already exists in the file
     if new_date and is_date_already_saved(new_date, filename):
-        print(f"data for date {new_date} already exists in {filename}. Skipping.")
+        log.info(f"[SCRAPE] data for {new_date} already exists in {filename}. Skipping.")
         return
 
     # If not, append the new data
@@ -339,30 +376,40 @@ if __name__ == "__main__":
     ranking_url = "https://strategus.appspot.com/eloRanking.html"
     highlights_url = "https://strategus.appspot.com/rankedResults.html"
 
+    log_section("Strategus Archive Scrape")
+
     driver = None
     try:
         driver = create_driver()
+        log_success("Launched headless browser")
 
         # Scrape and save ranking data
+        log_section("Rankings")
         ranking_data = scrape_with_retry(scrape_ranking_data, driver, ranking_url)
         if ranking_data:
+            log_event("ranking data", {"rows": len(ranking_data)})
             save_to_csv(ranking_data, 'ranking_history.csv', RANKING_CSV_HEADER)
 
         # Scrape and save highlights data
+        log_section("Highlights")
         highlights_data = scrape_with_retry(scrape_highlights_data, driver, highlights_url)
         if highlights_data:
+            log_event("highlights data", {"rows": len(highlights_data)})
             save_to_csv(highlights_data, 'highlights_history.csv', HIGHLIGHTS_CSV_HEADER)
 
         # Scrape and save match data
+        log_section("Matches")
         match_data = scrape_with_retry(scrape_match_data, driver, highlights_url)
         if match_data:
+            log_event("match data", {"rows": len(match_data)})
             save_to_csv(match_data, 'match_history.csv', MATCH_CSV_HEADER)
 
     finally:
         if driver is not None:
             try:
                 driver.quit()
+                log.info("[SCRAPE] browser closed")
             except Exception:
                 pass
 
-    print("Scraping complete!")
+    log_success("Scraping complete")
