@@ -35,16 +35,11 @@ h1 {
 }
 
 .controls {
-  background: var(--bg-soft);
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 24px;
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
-  border: 1px solid var(--border);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  margin-bottom: 8px;
 }
 
 select {

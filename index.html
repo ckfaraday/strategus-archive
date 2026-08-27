@@ -90,11 +90,11 @@
         tr.innerHTML =
           headerCell('Pos', 'pos') +
           headerCell('Name', 'name') +
-          '<th>Flag</th>' +
-          '<th>Score</th>' +
-          '<th>Diff</th>' +
-          '<th>W/L/D</th>' +
-          '<th>Eff%</th>' +
+          headerCell('Flag', 'flag') +
+          headerCell('Score', 'score') +
+          headerCell('Diff', 'diff') +
+          headerCell('W/L/D', 'wld') +
+          headerCell('Eff%', 'eff') +
           headerCell('AOR', 'aor');
         thead.appendChild(tr);
         table.appendChild(thead);
