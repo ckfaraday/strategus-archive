@@ -21,7 +21,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install dependencies
-        run: pip install selenium
+        run: pip install -r requirements.txt
 
       - name: Run scraper
         run: python strategus-scrape.py
