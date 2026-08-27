@@ -12,8 +12,6 @@ import logging
 
 # CSV headers
 RANKING_CSV_HEADER = ['date', 'pos', 'name', 'flag', 'score', 'diff', 'wld', 'eff', 'opps', 'aor']
-HIGHLIGHTS_CSV_HEADER = ['date', 'metric', 'player_count', 'players_json']
-MATCH_CSV_HEADER = ['date', 'player1', 'player2', 'result', 'moves', 'elo_change1', 'elo_change2']
 
 MAX_RETRIES = 3
 PAGE_LOAD_TIMEOUT = 30
@@ -68,62 +66,6 @@ def date_from_timestamp(driver, json_url):
     data = json.loads(body)
     ts_ms = data["timestamp"]
     return datetime.utcfromtimestamp(ts_ms / 1000.0).strftime('%Y-%m-%d')
-
-def parse_highlight_item(text, metric):
-    """Parse individual highlight item"""
-    details = text.split(':', 1)[1].strip()
-    players = []
-
-    if metric in ['All-time-high Elo hits', 'Biggest Elo rise', 'Biggest Elo drop']:
-        for entry in details.split(','):
-            entry = entry.strip()
-            if '(' in entry:
-                name, elo = entry.split('(')
-                players.append({
-                    'name': name.strip(),
-                    'elo': elo.replace(')', '').strip()
-                })
-
-    elif metric in ['Best W-L streak', 'Worst W-L streak']:
-        for entry in details.split(','):
-            entry = entry.strip()
-            if '(' in entry:
-                name, stats = entry.split('(')
-                stats = stats.replace(')', '')
-                if '-' in stats:
-                    wins, losses = stats.split('-')
-                    players.append({
-                        'name': name.strip(),
-                        'wins': wins.replace('W', '').strip(),
-                        'losses': losses.replace('L', '').strip()
-                    })
-
-    elif metric == 'Prolonged win streaks':
-        for entry in details.split(','):
-            entry = entry.strip()
-            if '(' in entry:
-                name, wins = entry.split('(')
-                players.append({
-                    'name': name.strip(),
-                    'wins': wins.replace('W', '').replace(')', '').strip()
-                })
-
-    elif metric == 'Most active player':
-        for entry in details.split(','):
-            entry = entry.strip()
-            if '(' in entry:
-                name, games = entry.split('(')
-                players.append({
-                    'name': name.strip(),
-                    'games': games.replace('games', '').replace(')', '').strip()
-                })
-
-    else:  # New players, Comebacks
-        for entry in details.split(','):
-            if entry.strip():
-                players.append({'name': entry.strip()})
-
-    return players
 
 def create_driver():
     """Create a shared headless Chrome driver"""
@@ -186,120 +128,6 @@ def scrape_ranking_data(driver, url, scraped_date):
 
     return data
 
-def scrape_highlights_data(driver, url, scraped_date):
-    """Scrape highlights data with robust waiting"""
-    driver.get(url)
-
-    # Wait for JavaScript to execute and content to load
-    WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#highlights ul li"))
-    )
-
-    highlights_items = driver.find_elements(By.CSS_SELECTOR, "#highlights ul li")
-
-    data = []
-    for item in highlights_items:
-        text = item.text.strip()
-        if not text or ':' not in text:
-            continue
-
-        metric = text.split(':')[0].strip()
-        players = parse_highlight_item(text, metric)
-
-        if players:
-            data.append([
-                scraped_date,
-                metric,
-                len(players),
-                json.dumps(players, ensure_ascii=False)
-            ])
-
-    return data
-
-def scrape_match_data(driver, url, scraped_date):
-    """Scrape match results data with numeric results (1=player1 won, 2=player2 won, draw)"""
-    matches = []
-
-    driver.get(url)
-
-    # Wait for JavaScript to execute and content to load
-    WebDriverWait(driver, 15).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, "#results tr"))
-    )
-
-    # Scrape all match rows
-    rows = driver.find_elements(By.CSS_SELECTOR, "#results tr")
-
-    for row in rows:
-        try:
-            cols = row.find_elements(By.TAG_NAME, "td")
-            if len(cols) < 4:  # Skip if not enough columns
-                continue
-
-            # Skip incognito matches (marked with "[?]" in second column)
-            if cols[1].text.strip() == "[?]":
-                continue
-
-            # Parse the match info
-            vs_text = cols[0].text.strip()
-            if " vs. " not in vs_text:
-                continue
-
-            # Split player info and results
-            player1_part, player2_part = vs_text.split(" vs. ")
-
-            # Extract player1 name and result
-            if "[" in player1_part:
-                player1, result1 = player1_part.rsplit(" [", 1)
-                result1 = result1.replace("]", "").strip()
-            else:
-                player1 = player1_part.strip()
-                result1 = ""
-
-            # Extract player2 name and result
-            if "[" in player2_part:
-                player2, result2 = player2_part.rsplit(" [", 1)
-                result2 = result2.replace("]", "").strip()
-            else:
-                player2 = player2_part.strip()
-                result2 = ""
-
-            # Determine match result
-            if result1 == "W" and result2 == "L":
-                result = "1"  # player1 won
-            elif result1 == "L" and result2 == "W":
-                result = "2"  # player2 won
-            else:
-                result = "draw"
-
-            # Get moves count
-            moves = cols[2].text.strip()
-
-            # Get ELO changes (split by slash and clean)
-            elo_changes = cols[3].text.strip().split("/")
-            if len(elo_changes) == 2:
-                elo_change1 = elo_changes[0].strip()
-                elo_change2 = elo_changes[1].strip()
-            else:
-                elo_change1 = ""
-                elo_change2 = ""
-
-            matches.append([
-                scraped_date,
-                player1.strip(),
-                player2.strip(),
-                result,
-                moves,
-                elo_change1,
-                elo_change2
-            ])
-
-        except Exception as e:
-            log.debug(f"[SCRAPE] error processing match row: {e}")
-            continue
-
-    return matches
-
 def scrape_with_retry(scrape_func, driver, url, scraped_date):
     """Run a scrape with retries on transient failures"""
     last_error = None
@@ -353,18 +181,12 @@ def is_date_already_saved(date_to_check, filename):
     return False
 
 if __name__ == "__main__":
-    # Initialize CSVs
+    # Initialize CSV
     ensure_csv_header('ranking_history.csv', RANKING_CSV_HEADER)
-    ensure_csv_header('highlights_history.csv', HIGHLIGHTS_CSV_HEADER)
-    ensure_csv_header('match_history.csv', MATCH_CSV_HEADER)
 
     ranking_url = "https://strategus.appspot.com/eloRanking.html"
     ranking_json_url = "https://strategus.appspot.com/eloRanking"
-    highlights_url = "https://strategus.appspot.com/rankedResults.html"
-    highlights_json_url = "https://strategus.appspot.com/rankedResults"
     ranking_csv = 'ranking_history.csv'
-    highlights_csv = 'highlights_history.csv'
-    match_csv = 'match_history.csv'
 
     log_section("Strategus Archive Scrape")
 
@@ -381,22 +203,6 @@ if __name__ == "__main__":
         if ranking_data:
             log_event("ranking data", {"rows": len(ranking_data)})
             save_to_csv(ranking_data, ranking_csv, RANKING_CSV_HEADER)
-
-        # Scrape and save highlights data
-        log_section("Highlights")
-        highlights_date = date_from_timestamp(driver, highlights_json_url)
-        log_status("highlights date", highlights_date)
-        highlights_data = scrape_with_retry(scrape_highlights_data, driver, highlights_url, highlights_date)
-        if highlights_data:
-            log_event("highlights data", {"rows": len(highlights_data)})
-            save_to_csv(highlights_data, highlights_csv, HIGHLIGHTS_CSV_HEADER)
-
-        # Scrape and save match data
-        log_section("Matches")
-        match_data = scrape_with_retry(scrape_match_data, driver, highlights_url, highlights_date)
-        if match_data:
-            log_event("match data", {"rows": len(match_data)})
-            save_to_csv(match_data, match_csv, MATCH_CSV_HEADER)
 
     finally:
         if driver is not None:
