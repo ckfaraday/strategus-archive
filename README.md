@@ -8,7 +8,7 @@ Automated archive of the [Strategus](https://strategus.appspot.com) Elo rankings
 - The ranking date is derived from the JSON `timestamp` (UTC), so it's consistent regardless of the host's locale.
 - A scheduled GitHub Actions workflow ([`.github/workflows/workflow.yml`](.github/workflows/workflow.yml)) runs the scraper daily and commits any new data.
 
-## Usage
+## View
 
 Open [`ckfaraday.github.io/strategus-archive/`](https://ckfaraday.github.io/strategus-archive/) to view the archive. It fetches the CSV and lets you pick a date to display that day's rankings.
 
@@ -23,4 +23,4 @@ Open [`ckfaraday.github.io/strategus-archive/`](https://ckfaraday.github.io/stra
 pip install -r requirements.txt
 python strategus-scrape.py
 ```
-This appends the ranking data from strategus.appspot.com and appends them to the ranking_history.csv file if it does not already exist.
+This appends today's ranking data from strategus.appspot.com and appends them to the ranking_history.csv file if the data for this date does not already exist.
